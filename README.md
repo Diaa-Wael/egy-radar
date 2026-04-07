@@ -70,7 +70,7 @@ Follow these steps to deploy the dashboard on your local hardware:
 
 ### **1. Clone the Intelligence Hub**
 ```bash
-git clone [https://github.com/Diaa-Wael/egy-radar.git](https://github.com/Diaa-Wael/egy-radar.git)
+git clone https://github.com/Diaa-Wael/egy-radar.git
 ```
 
 ### 🏁 Summary of the User Experience
