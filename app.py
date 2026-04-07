@@ -3,63 +3,23 @@ import requests
 import streamlit.components.v1 as components
 from datetime import datetime
 
-st.set_page_config(
-    page_title="Egypt Weather Monitor", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
-)
+# --- 1. SETTINGS & CLOUD CSS ---
+st.set_page_config(page_title="Egypt Weather Monitor", layout="wide")
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-    
-    /* 1. HIDE TOP BAR & FOOTER (STAYING DISCRETE) */
-    header, footer, .stDeployButton, [data-testid="stDecoration"] {display: none !important;}
-
-    /* 2. CLOUD COMPATIBLE LOCK (Prevents the 'Disappearing Act') */
-    /* We target only the main scroll containers, not the whole App */
-    [data-testid="stMainViewContainer"], [data-testid="stAppViewContainer"] {
-        overflow: hidden !important;
-    }
-
-    /* 3. EYE-COMFY THEME */
-    .stApp { 
-        background-color: #121212; 
-        color: #E0E0E0; 
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* 4. SIDEBAR FIX: Keep content visible and static */
-    [data-testid="stSidebar"] {
-        background-color: #1A1A1A !important;
-    }
-    [data-testid="stSidebarUserContent"] {
-        padding-top: 2rem !important;
-    }
-    
-    /* 5. MAIN PAGE: Edge-to-Edge Map */
-    .main .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
-        height: 100vh !important;
-    }
-
-    /* 6. METRIC BOXES: High-Contrast */
+    header, footer, .stDeployButton {display: none !important;}
+    [data-testid="stMainViewContainer"] { overflow: hidden !important; }
+    .stApp { background-color: #121212; color: #E0E0E0; font-family: 'Inter', sans-serif; }
     div[data-testid="stMetric"] { 
-        background-color: #1E1E1E; 
-        border: 1px solid #333; 
-        padding: 15px; 
-        border-radius: 10px;
-        margin-bottom: 8px;
+        background-color: #1E1E1E; border: 1px solid #333; 
+        padding: 15px; border-radius: 10px; margin-bottom: 8px;
     }
-    div[data-testid="stMetricLabel"] { color: #AAAAAA !important; font-size: 0.8rem !important; }
-    div[data-testid="stMetricValue"] { color: #38BDF8 !important; font-size: 1.4rem !important; }
-    
-    /* Progress Bar */
-    div[st-component="stProgress"] > div > div > div > div { background-color: #38BDF8 !important; }
+    div[data-testid="stMetricValue"] { color: #38BDF8 !important; }
     </style>
     """, unsafe_allow_html=True)
 
+# --- 2. DATA ENGINE (Cloud Optimized) ---
 SECTORS = {
     "Cairo": {"lat": 30.04, "lon": 31.23, "zoom": 10},
     "Alexandria": {"lat": 31.20, "lon": 29.91, "zoom": 10},
@@ -79,28 +39,32 @@ if 'city' not in st.session_state:
 @st.cache_data(ttl=300)
 def fetch_weather(city):
     c = SECTORS[city]
+    # Forced HTTPS for Cloud Security
     url = f"https://api.open-meteo.com/v1/forecast?latitude={c['lat']}&longitude={c['lon']}&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=precipitation_probability"
     try:
-        res = requests.get(url).json()
+        response = requests.get(url, timeout=10)
+        response.raise_for_status() # Check if the request was successful
+        data = response.json()
         curr_h = datetime.now().hour
         return {
-            "temp": res['current']['temperature_2m'],
-            "hum": res['current']['relative_humidity_2m'],
-            "wind": res['current']['wind_speed_10m'],
-            "rain": res['hourly']['precipitation_probability'][curr_h]
+            "temp": data['current']['temperature_2m'],
+            "hum": data['current']['relative_humidity_2m'],
+            "wind": data['current']['wind_speed_10m'],
+            "rain": data['hourly']['precipitation_probability'][curr_h]
         }
-    except:
-        return {"temp": "--", "hum": "--", "wind": "--", "rain": 0}
+    except Exception as e:
+        # This will show up in your Streamlit Cloud logs
+        print(f"Error fetching data for {city}: {e}")
+        return {"temp": "Error", "hum": "Error", "wind": "Error", "rain": 0}
 
 weather = fetch_weather(st.session_state.city)
 coords = SECTORS[st.session_state.city]
 
+# --- 3. SIDEBAR ---
 with st.sidebar:
-    st.markdown("<h2 style='margin-top:0;'>Weather Hub</h2>", unsafe_allow_html=True)
-    
+    st.title("Weather Hub")
     selected = st.selectbox("Location", options=list(SECTORS.keys()), 
                             index=list(SECTORS.keys()).index(st.session_state.city))
-    
     if selected != st.session_state.city:
         st.session_state.city = selected
         st.rerun()
@@ -110,16 +74,9 @@ with st.sidebar:
     st.metric("Wind Speed", f"{weather['wind']} km/h")
     st.metric("Humidity", f"{weather['hum']} %")
     st.metric("Rain Chance", f"{weather['rain']} %")
-    st.progress(weather['rain'] / 100)
-    st.markdown("---")
+    st.progress(int(weather['rain']) / 100 if isinstance(weather['rain'], int) else 0)
     st.caption(f"Sync: {datetime.now().strftime('%H:%M')} EET")
 
+# --- 4. MAP ---
 windy_url = f"https://embed.windy.com/embed2.html?lat={coords['lat']}&lon={coords['lon']}&zoom={coords['zoom']}&overlay=wind&product=ecmwf&marker=true"
-
-components.html(f"""
-    <iframe src="{windy_url}" 
-    width="100%" 
-    height="100%" 
-    frameborder="0" 
-    style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; border: none;"></iframe>
-    """, height=1200) # Large height prevents 'thin map' on high-res screens
+components.html(f'<iframe src="{windy_url}" width="100%" height="100vh" frameborder="0" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh; border: none;"></iframe>', height=1000)
