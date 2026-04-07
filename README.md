@@ -62,6 +62,16 @@ The final block is the Map Layer, where satellite data meets the UI.
 - **Internal Styling**: Inside the HTML block, we add a final filter: `saturate(1.2) brightness(0.9)`.  
   - **Saturation (1.2)**: Makes the weather radar colors pop against the black background. 🌈  
   - **Brightness (0.9)**: Dims the map slightly so the glowing sidebar metrics are always the primary focus. 🌑
+------------------------------------------------------------------------------------
+
+# 💻 LOCAL INSTALLATION
+
+Follow these steps to deploy the dashboard on your local hardware:
+
+### **1. Clone the Intelligence Hub**
+```bash
+git clone [https://github.com/Diaa-Wael/egy-radar.git](https://github.com/Diaa-Wael/egy-radar.git)
+```
 
 ### 🏁 Summary of the User Experience
 
