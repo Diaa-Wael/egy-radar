@@ -68,7 +68,7 @@ The final block is the Map Layer, where satellite data meets the UI.
 
 Follow these steps to deploy the dashboard on your local hardware:
 
-### **1. Clone the Intelligence Hub**
+### Clone the Intelligence Hub**
 ```bash
 git clone https://github.com/Diaa-Wael/egy-radar.git
 ```
